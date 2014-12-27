@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #The MIT License (MIT)
 #
 #Copyright (c) 2014 Vincent Ruijter
@@ -20,9 +21,8 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 #
-#!/usr/bin/env python
 
-import sys
+import sys, re
 import socket
 from optparse import OptionParser, OptionGroup
 
@@ -82,10 +82,11 @@ def get_output(ciphers):
 	d = ciphers.split(',')
 	weak_ciphers = ['aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc','aes192-cbc','aes256-cbc','rijndael-cbc@lysator.liu.se','aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc','aes192-cbc','aes256-cbc','rijndael-cbc@lysator.liu.se','hmac-md5','hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96','hmac-md5-96,hmac-md5','hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96','hmac-md5-96']
 	n = []
-	for i in d:
+	for i in list(d):
+		ci = re.sub(r'[^ -~].*', '', i)
 		for j in weak_ciphers:
-			if i == j:
-				n.append(i)
+			if ci == j:
+				n.append(ci)
 	print '[+] Detected the following weak ciphers:\n--[!] ' + '\n--[!] ' ''.join([str(item) for item in set(n)])
 
 def main():
@@ -106,7 +107,7 @@ def main():
 
 	if target:
 		ipport = target.split(':')
-		get_output(exchange(connnection(), ipport[0], int(ipport[1]), verbose))
+		get_output(exchange(connection(), ipport[0], int(ipport[1]), verbose))
 	else:
 		if targetlist is not None:
 			targets = list_parser(targetlist)
