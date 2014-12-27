@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import re,sys
+import sys
 import socket
 from optparse import OptionParser, OptionGroup
 
@@ -14,8 +14,6 @@ def banner():
 	     						evict
 			"""                               
 	return banner
-                                         
-	
 
 def connection():
 	conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
