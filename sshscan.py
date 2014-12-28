@@ -45,7 +45,7 @@ def connection():
 def exchange(conn, ip, port, verbose):
 	try:
 		conn.connect((ip, port))
-		print "[*] Connected to %s on port %i" %(ip, port)
+		print "\n[*] Connected to %s on port %i" %(ip, port)
 		version = conn.recv(50)
 		conn.send('SSH-2.0-OpenSSH_6.0p1\r\n')
 		
@@ -61,7 +61,7 @@ def exchange(conn, ip, port, verbose):
 
 	except socket.error:
 		print "[-] Error connecting to %s on port %i!"%(ip, port)
-		sys.exit(1)
+		pass
 		
 def list_parser(list):
 	try:
@@ -79,15 +79,18 @@ def list_parser(list):
 		sys.exit(2)
 
 def get_output(ciphers):
-	d = ciphers.split(',')
-	weak_ciphers = ['aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc','aes192-cbc','aes256-cbc','rijndael-cbc@lysator.liu.se','aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc','aes192-cbc','aes256-cbc','rijndael-cbc@lysator.liu.se','hmac-md5','hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96','hmac-md5-96,hmac-md5','hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96','hmac-md5-96']
-	n = []
-	for i in list(d):
-		ci = re.sub(r'[^ -~].*', '', i)
-		for j in weak_ciphers:
-			if ci == j:
-				n.append(ci)
-	print '[+] Detected the following weak ciphers:\n---[!] ' + '\n---[!] ' ''.join([str(item) for item in set(n)])
+	if ciphers:
+		d = ciphers.split(',')
+		weak_ciphers = ['aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc','aes192-cbc','aes256-cbc','rijndael-cbc@lysator.liu.se','aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc','aes192-cbc','aes256-cbc','rijndael-cbc@lysator.liu.se','hmac-md5','hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96','hmac-md5-96,hmac-md5','hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96','hmac-md5-96']
+		n = []
+		for i in list(d):
+			ci = re.sub(r'[^ -~].*', '', i)
+			for j in weak_ciphers:
+				if ci == j:
+					n.append(ci)
+		print '[+] Detected the following weak ciphers:\n---[!] ' + '\n---[!] ' ''.join([str(item) for item in set(n)])
+	else:
+		return False
 
 def main():
 	print banner()
@@ -122,21 +125,31 @@ def main():
 	else:
 		if targetlist is not None:
 			targets = list_parser(targetlist)
-			for target in targets:
-				try:
-					if not re.search(r'[:]', target):
-						target = target+':22'
-						print "[*] No port specified, using default port 22"
-					ipport = target.split(':')
-					get_output(exchange(connection(), ipport[0], int(ipport[1]), verbose))
+			print "[*] List contains %i targets to scan" %len(targets)
+			error = 0
 
-				except IndexError:
-					print "[-] Please specify target as 'target:port'!"
-					sys.exit(1)
+			for target in targets:
+				if not re.search(r'[:]', target):
+					target = target+':22'
+					print "[*] No port specified, using default port 22"
+				ipport = target.split(':')
+				if not ipport[1]:
+					pass
+				try:
+					if not get_output(exchange(connection(), ipport[0], int(ipport[1]), verbose)):
+						error+=1
 
 				except ValueError:
-					print "[-] Target port error, please specify a valid port!"
-					sys.exit(1)	
+					if not ipport[1]:
+						print "[-] No port specified: %s!" %target
+						error+=1
+					else:
+						print "[-] Invalid port number %s for target %s" %(ipport[1], ipport[0])
+						error+=1
+						pass
+			
+			print "\n[*] Scan successful for %i out of %i targets!" %((len(targets)-error), len(targets))
+
 		else:
 			print "[-] No target specified!"
 
