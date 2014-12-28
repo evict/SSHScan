@@ -69,7 +69,6 @@ def parse_target(target, count):
 		target = target+':22'
 	
 	ipport=target.split(':')
-	error=0	
 
 	try:
 		print "[*] Initiating scan for %s on port %s" %(ipport[0], ipport[1])
@@ -77,15 +76,11 @@ def parse_target(target, count):
 	
 	except IndexError:
 		print "    [-] Please specify target as 'target:port'!\n"
-		error+=1
 		pass
 	
 	except ValueError:
 		print "    [-] Target port error, please specify a valid port!\n"
-		error+=1
 		pass
-	
-	print "[*] Scan successful for %i out of %i targets!" %((count-error), count)
 
 def list_parser(list):
 	try:
