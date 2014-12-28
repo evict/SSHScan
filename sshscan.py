@@ -42,7 +42,7 @@ def connection():
 	conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	return conn 
 
-def exchange(conn, ip, port, verbose):
+def exchange(conn, ip, port):
 	try:
 		conn.connect((ip, port))
 		print "[*] Connected to %s on port %i..."%(ip, port)
@@ -62,7 +62,31 @@ def exchange(conn, ip, port, verbose):
 	except socket.error:
 		print "    [-] Error connecting to %s on port %i!\n"%(ip, port)
 		pass
-		
+
+def parse_target(target, count):
+	if not re.search(r'[:]', target):
+		print "[*] Target %s specified without a port number, using default port 22"%target
+		target = target+':22'
+	
+	ipport=target.split(':')
+	error=0	
+
+	try:
+		print "[*] Initiating scan for %s on port %s" %(ipport[0], ipport[1])
+		get_output(exchange(connection(), ipport[0], int(ipport[1])))
+	
+	except IndexError:
+		print "    [-] Please specify target as 'target:port'!\n"
+		error+=1
+		pass
+	
+	except ValueError:
+		print "    [-] Target port error, please specify a valid port!\n"
+		error+=1
+		pass
+	
+	print "[*] Scan successful for %i out of %i targets!" %((count-error), count)
+
 def list_parser(list):
 	try:
 		fd=open(list, 'r')
@@ -72,8 +96,11 @@ def list_parser(list):
 			if target:
 				targets.append(target)
 
-		return targets
-	
+		print "[*] List contains %i targets to scan" %len(targets)
+
+		for target in targets:
+			parse_target(target, len(targets))
+
 	except IOError:
 		print "    [-] Error with input file:\n            Please specify targets on a seperate line as target or target:port!\n"
 		sys.exit(2)
@@ -107,51 +134,14 @@ def main():
 
 	target = options.target
 	targetlist = options.targetlist
+	global verbose 
 	verbose = options.verbose
 
 	if target:
-		try:
-			if not re.search(r'[:]', target):
-				print "[*] Target %s specified without a port number, using default port 22"%target
-				target = target+':22'
-			ipport = target.split(':')
-			get_output(exchange(connection(), ipport[0], int(ipport[1]), verbose))
-
-		except IndexError:
-			print "    [-] Please specify target as 'target:port'!\n"
-
-		except ValueError:
-			print "    [-] Target port error, please specify a valid port!\n"
-			sys.exit(1)
+		print parse_target(target)		
 	else:
-		if targetlist is not None:
-			targets = list_parser(targetlist)
-			print "[*] List contains %i targets to scan" %len(targets)
-			error = 0
-
-			for target in targets:
-				if not re.search(r'[:]', target):
-					print "[*] Target %s specified without a port number, using default port 22"%target
-					target = target+':22'
-				ipport = target.split(':')
-				if not ipport[1]:
-					pass
-				try:
-					print "[*] Initiating scan for %s on port %s" %(ipport[0], ipport[1])
-					if not get_output(exchange(connection(), ipport[0], int(ipport[1]), verbose)):
-						error+=1
-
-				except ValueError:
-					if not ipport[1]:
-						print "    [-] No port specified: %s!\n" %target
-						error+=1
-					else:
-						print "    [-] Invalid port number %s for target %s\n" %(ipport[1], ipport[0])
-						error+=1
-						pass
-			
-			print "[*] Scan successful for %i out of %i targets!" %((len(targets)-error), len(targets))
-
+		if targetlist:
+			list_parser(targetlist)
 		else:
 			print "    [-] No target specified!"
 			sys.exit(0)
