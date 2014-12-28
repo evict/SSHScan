@@ -60,7 +60,7 @@ def exchange(conn, ip, port, verbose):
 		return ciphers
 
 	except socket.error:
-		print "Error connecting to %s on port %i"%(ip, port)
+		print "[-] Error connecting to %s on port %i!"%(ip, port)
 		sys.exit(1)
 		
 def list_parser(list):
@@ -75,7 +75,7 @@ def list_parser(list):
 		return targets
 	
 	except IOError:
-		print "Error with input file:\n\t\t\tPlease specify targets on a seperate line as target:port"
+		print "[-] Error with input file:\n\t\t\tPlease specify targets on a seperate line as target or target:port!"
 		sys.exit(2)
 
 def get_output(ciphers):
@@ -87,15 +87,15 @@ def get_output(ciphers):
 		for j in weak_ciphers:
 			if ci == j:
 				n.append(ci)
-	print '[+] Detected the following weak ciphers:\n--[!] ' + '\n--[!] ' ''.join([str(item) for item in set(n)])
+	print '[+] Detected the following weak ciphers:\n---[!] ' + '\n---[!] ' ''.join([str(item) for item in set(n)])
 
 def main():
 	print banner()
 	parser = OptionParser(usage="usage %prog [options]", version="%prog 1.0")
 	parameters = OptionGroup(parser, "Options")
 
-	parameters.add_option("-t", "--target", type="string", help="target:port", dest="target")
-	parameters.add_option("-l", "--target-list", type="string", help="list with targets seperated by a newline: target:port", dest="targetlist")
+	parameters.add_option("-t", "--target", type="string", help="Specify target as 'target' or 'target:port' (port 22 is default)", dest="target")
+	parameters.add_option("-l", "--target-list", type="string", help="File with targets: 'target' or 'target:port' seperated by a newline (port 22 is default)", dest="targetlist")
 	parameters.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False)
 	parser.add_option_group(parameters)
 
@@ -107,22 +107,38 @@ def main():
 
 	if target:
 		try:
+			if not re.search(r'[:]', target):
+				target = target+':22'
+				print "[*] No port specified, using default port 22"
 			ipport = target.split(':')
 			get_output(exchange(connection(), ipport[0], int(ipport[1]), verbose))
+
 		except IndexError:
-			print "Please specify target as target:port!"
+			print "[-] Please specify target as 'target:port'!"
+
+		except ValueError:
+			print "[-] Target port error, please specify a valid port!"
+			sys.exit(1)
 	else:
 		if targetlist is not None:
 			targets = list_parser(targetlist)
 			for target in targets:
 				try:
+					if not re.search(r'[:]', target):
+						target = target+':22'
+						print "[*] No port specified, using default port 22"
 					ipport = target.split(':')
 					get_output(exchange(connection(), ipport[0], int(ipport[1]), verbose))
+
 				except IndexError:
-					print "Please specify target as target:port!"
+					print "[-] Please specify target as 'target:port'!"
 					sys.exit(1)
+
+				except ValueError:
+					print "[-] Target port error, please specify a valid port!"
+					sys.exit(1)	
 		else:
-			print "No target specified!"
+			print "[-] No target specified!"
 
 if __name__ == '__main__':
 	main()
