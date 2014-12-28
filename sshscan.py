@@ -28,14 +28,14 @@ from optparse import OptionParser, OptionGroup
 
 def banner():
 	banner = """
-		 _____ _____ _   _ _____                 
-		/  ___/  ___| | | /  ___|                
+		 _____ _____ _    _ _____                      
+		/  ___/  ___| | | /  ___|                     
 		\ `--.\ `--.| |_| \ `--.  ___ __ _ _ __  
 		 `--. \`--. |  _  |`--. \/ __/ _` | '_ \ 
 		/\__/ /\__/ | | | /\__/ | (_| (_| | | | |
 		\____/\____/\_| |_\____/ \___\__,_|_| |_|
-	     						evict
-			"""                               
+	      						evict
+			"""                                         
 	return banner
 
 def connection():
@@ -45,22 +45,22 @@ def connection():
 def exchange(conn, ip, port, verbose):
 	try:
 		conn.connect((ip, port))
-		print "\n[*] Connected to %s on port %i" %(ip, port)
+		print "[*] Connected to %s on port %i..."%(ip, port)
 		version = conn.recv(50)
 		conn.send('SSH-2.0-OpenSSH_6.0p1\r\n')
 		
-		print "[+] Retrieving ciphers..."
+		print "    [+] Retrieving ciphers..."
 		ciphers = conn.recv(984)
 		conn.close()
 		
 		if verbose == True:
-			print "[++] Target SSH version: %s" %version
-			print "[++] Cipher output: %s" %ciphers
+			print "    [++] Target SSH version: %s" %version
+			print "    [++] Cipher output: %s" %ciphers
 	
 		return ciphers
 
 	except socket.error:
-		print "[-] Error connecting to %s on port %i!"%(ip, port)
+		print "    [-] Error connecting to %s on port %i!\n"%(ip, port)
 		pass
 		
 def list_parser(list):
@@ -75,7 +75,7 @@ def list_parser(list):
 		return targets
 	
 	except IOError:
-		print "[-] Error with input file:\n\t\t\tPlease specify targets on a seperate line as target or target:port!"
+		print "    [-] Error with input file:\n            Please specify targets on a seperate line as target or target:port!\n"
 		sys.exit(2)
 
 def get_output(ciphers):
@@ -88,7 +88,8 @@ def get_output(ciphers):
 			for j in weak_ciphers:
 				if ci == j:
 					n.append(ci)
-		print '[+] Detected the following weak ciphers:\n---[!] ' + '\n---[!] ' ''.join([str(item) for item in set(n)])
+		print '    [+] Detected the following weak ciphers:\n        [!] ' + '\n        [!] ' ''.join([str(item) for item in set(n)]) + '\n'
+		return True
 	else:
 		return False
 
@@ -111,16 +112,16 @@ def main():
 	if target:
 		try:
 			if not re.search(r'[:]', target):
+				print "[*] Target %s specified without a port number, using default port 22"%target
 				target = target+':22'
-				print "[*] No port specified, using default port 22"
 			ipport = target.split(':')
 			get_output(exchange(connection(), ipport[0], int(ipport[1]), verbose))
 
 		except IndexError:
-			print "[-] Please specify target as 'target:port'!"
+			print "    [-] Please specify target as 'target:port'!\n"
 
 		except ValueError:
-			print "[-] Target port error, please specify a valid port!"
+			print "    [-] Target port error, please specify a valid port!\n"
 			sys.exit(1)
 	else:
 		if targetlist is not None:
@@ -130,28 +131,30 @@ def main():
 
 			for target in targets:
 				if not re.search(r'[:]', target):
+					print "[*] Target %s specified without a port number, using default port 22"%target
 					target = target+':22'
-					print "[*] No port specified, using default port 22"
 				ipport = target.split(':')
 				if not ipport[1]:
 					pass
 				try:
+					print "[*] Initiating scan for %s on port %s" %(ipport[0], ipport[1])
 					if not get_output(exchange(connection(), ipport[0], int(ipport[1]), verbose)):
 						error+=1
 
 				except ValueError:
 					if not ipport[1]:
-						print "[-] No port specified: %s!" %target
+						print "    [-] No port specified: %s!\n" %target
 						error+=1
 					else:
-						print "[-] Invalid port number %s for target %s" %(ipport[1], ipport[0])
+						print "    [-] Invalid port number %s for target %s\n" %(ipport[1], ipport[0])
 						error+=1
 						pass
 			
-			print "\n[*] Scan successful for %i out of %i targets!" %((len(targets)-error), len(targets))
+			print "[*] Scan successful for %i out of %i targets!" %((len(targets)-error), len(targets))
 
 		else:
-			print "[-] No target specified!"
+			print "    [-] No target specified!"
+			sys.exit(0)
 
 if __name__ == '__main__':
 	main()
