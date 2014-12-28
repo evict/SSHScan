@@ -106,14 +106,21 @@ def main():
 	verbose = options.verbose
 
 	if target:
-		ipport = target.split(':')
-		get_output(exchange(connection(), ipport[0], int(ipport[1]), verbose))
+		try:
+			ipport = target.split(':')
+			get_output(exchange(connection(), ipport[0], int(ipport[1]), verbose))
+		except IndexError:
+			print "Please specify target as target:port!"
 	else:
 		if targetlist is not None:
 			targets = list_parser(targetlist)
 			for target in targets:
-				ipport = target.split(':')
-				get_output(exchange(connection(), ipport[0], int(ipport[1]), verbose))
+				try:
+					ipport = target.split(':')
+					get_output(exchange(connection(), ipport[0], int(ipport[1]), verbose))
+				except IndexError:
+					print "Please specify target as target:port!"
+					sys.exit(1)
 		else:
 			print "No target specified!"
 
