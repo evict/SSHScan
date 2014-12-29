@@ -63,7 +63,7 @@ def exchange(conn, ip, port):
 		print "    [-] Error connecting to %s on port %i!\n"%(ip, port)
 		pass
 
-def parse_target(target, count):
+def parse_target(target):
 	if not re.search(r'[:]', target):
 		print "[*] Target %s specified without a port number, using default port 22"%target
 		target = target+':22'
@@ -94,7 +94,7 @@ def list_parser(list):
 		print "[*] List contains %i targets to scan" %len(targets)
 
 		for target in targets:
-			parse_target(target, len(targets))
+			parse_target(target)
 
 	except IOError:
 		print "    [-] Error with input file:\n            Please specify targets on a seperate line as target or target:port!\n"
@@ -133,7 +133,7 @@ def main():
 	verbose = options.verbose
 
 	if target:
-		print parse_target(target)		
+		parse_target(target)		
 	else:
 		if targetlist:
 			list_parser(targetlist)
