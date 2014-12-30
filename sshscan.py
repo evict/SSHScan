@@ -28,13 +28,13 @@ from optparse import OptionParser, OptionGroup
 
 def banner():
 	banner = """
-		 _____ _____ _    _ _____                      
-		/  ___/  ___| | | /  ___|                     
-		\ `--.\ `--.| |_| \ `--.  ___ __ _ _ __  
-		 `--. \`--. |  _  |`--. \/ __/ _` | '_ \ 
-		/\__/ /\__/ | | | /\__/ | (_| (_| | | | |
-		\____/\____/\_| |_\____/ \___\__,_|_| |_|
-	      						evict
+ _____ _____ _    _ _____                      
+/  ___/  ___| | | /  ___|                     
+\ `--.\ `--.| |_| \ `--.  ___ __ _ _ __  
+`--. \`--. |  _  |`--. \/ __/ _` | '_ \ 
+/\__/ /\__/ | | | /\__/ | (_| (_| | | | |
+\____/\____/\_| |_\____/ \___\__,_|_| |_|
+					evict
 			"""                                         
 	return banner
 
@@ -57,7 +57,7 @@ def exchange(conn, ip, port):
 
 	except socket.error:
 		print "    [-] Error connecting to %s on port %i!\n"%(ip, port)
-		pass
+		return False	
 
 def parse_target(target):
 	if not re.search(r'[:]', target):
@@ -68,15 +68,16 @@ def parse_target(target):
 
 	try:
 		print "[*] Initiating scan for %s on port %s" %(ipport[0], ipport[1])
-		get_output(exchange(connection(), ipport[0], int(ipport[1])))
+		if not get_output(exchange(connection(), ipport[0], int(ipport[1]))):
+			return False
 	
 	except IndexError:
 		print "    [-] Please specify target as 'target:port'!\n"
-		pass
+		return False	
 	
 	except ValueError:
 		print "    [-] Target port error, please specify a valid port!\n"
-		pass
+		return False	
 
 def list_parser(list):
 	try:
@@ -89,17 +90,24 @@ def list_parser(list):
 
 		print "[*] List contains %i targets to scan" %len(targets)
 
+		error = 0
 		for target in targets:
-			parse_target(target)
+			if parse_target(target) == False:
+				error+=1
+		if error > 0:
+			print "[*] Scan completed for %i out of %i targets!" %((len(targets)-error), len(targets))
 
-	except IOError:
-		print "    [-] Error with input file:\n            Please specify targets on a seperate line as target or target:port!\n"
+	except IOError as e:
+		print "    [-]  %s"%re.sub(r'\[Errno\ ([0-9]){1,}\]\ ','', str(e))
 		sys.exit(2)
 
 def get_output(ciphers):
 	if ciphers:
 		d = ciphers.split(',')
-		weak_ciphers = ['aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc','aes192-cbc','aes256-cbc','rijndael-cbc@lysator.liu.se','aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc','aes192-cbc','aes256-cbc','rijndael-cbc@lysator.liu.se','hmac-md5','hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96','hmac-md5-96,hmac-md5','hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96','hmac-md5-96']
+		weak_ciphers = ['aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc','aes192-cbc',\
+'aes256-cbc','rijndael-cbc@lysator.liu.se','aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc',\
+'aes192-cbc','aes256-cbc','rijndael-cbc@lysator.liu.se','hmac-md5',\
+'hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96','hmac-md5-96,hmac-md5','hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96','hmac-md5-96']
 		rawcipher = []
 		weak = []
 		for i in list(d):
