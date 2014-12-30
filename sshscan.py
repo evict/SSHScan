@@ -48,14 +48,11 @@ def exchange(conn, ip, port):
 		print "[*] Connected to %s on port %i..."%(ip, port)
 		version = conn.recv(50).split('\n')[0]
 		conn.send('SSH-2.0-OpenSSH_6.0p1\r\n')
-		
+		print "    [+] Target SSH version is: %s" %version
 		print "    [+] Retrieving ciphers..."
 		ciphers = conn.recv(984)
 		conn.close()
 		
-		if verbose == True:
-			print "    [++] Target SSH version: %s" %version
-	
 		return ciphers
 
 	except socket.error:
@@ -111,21 +108,20 @@ def get_output(ciphers):
 			for j in weak_ciphers:
 				if ci == j:
 					weak.append(ci)
-		if verbose == True:
-			cipherlist = []
-			for i in set(rawcipher):
-				if i:
-					cipherlist.append(i)
-			cols = 3
-			while len(cipherlist) % cols != 0:
-				cipherlist.append('')
-			else:	
-				split = [cipherlist[i:i+len(cipherlist)/cols] for i in range(0, len(cipherlist), len(cipherlist)/cols)]
-				print '    [++] Detected the following ciphers: '  			
-				for row in zip(*split):
-					print "            " + "".join(str.ljust(c,35) for c in row)
+		cipherlist = []
+		for i in set(rawcipher):
+			if i:
+				cipherlist.append(i)
+		cols = 3
+		while len(cipherlist) % cols != 0:
+			cipherlist.append('')
+		else:
+			split = [cipherlist[i:i+len(cipherlist)/cols] for i in range(0, len(cipherlist), len(cipherlist)/cols)]
+			print '    [+] Detected the following ciphers: '  			
+			for row in zip(*split):
+				print "            " + "".join(str.ljust(c,37) for c in row)
 
-				print "\n"	
+		print "\n"	
 
 		print '    [+] Detected the following weak ciphers:\n        [!] ' + '\n        [!] ' ''.join([str(item) for item in set(weak)]) + '\n'
 		return True
@@ -139,15 +135,12 @@ def main():
 
 	parameters.add_option("-t", "--target", type="string", help="Specify target as 'target' or 'target:port' (port 22 is default)", dest="target")
 	parameters.add_option("-l", "--target-list", type="string", help="File with targets: 'target' or 'target:port' seperated by a newline (port 22 is default)", dest="targetlist")
-	parameters.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False)
 	parser.add_option_group(parameters)
 
 	options, arguments = parser.parse_args()
 
 	target = options.target
 	targetlist = options.targetlist
-	global verbose 
-	verbose = options.verbose
 
 	if target:
 		parse_target(target)		
