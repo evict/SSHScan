@@ -38,13 +38,9 @@ def banner():
 			"""                                         
 	return banner
 
-def connection():
-	conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	return conn 
-
-def exchange(conn, ip, port):
+def exchange(ip, port):
 	try:
-		conn.connect((ip, port))
+		conn = socket.create_connection((ip, port),5)
 		print "[*] Connected to %s on port %i..."%(ip, port)
 		version = conn.recv(50).split('\n')[0]
 		conn.send('SSH-2.0-OpenSSH_6.0p1\r\n')
@@ -54,12 +50,27 @@ def exchange(conn, ip, port):
 		conn.close()
 		
 		return ciphers
-
-	except socket.error:
-		print "    [-] Error connecting to %s on port %i!\n"%(ip, port)
-		return False	
+	
+	except socket.timeout:
+		print "    [-] Timeout while connecting to %s on port %i\n"%(ip, port)
+		return False
 
 def parse_target(target):
+	if re.match(r"(^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}($|:[\d]{1,5}$))", target):
+		target_ = target.split(':')[0].split('.')
+		for i in range(0, len(target_)):
+				if int(target_[i]) > 255:
+					print "[-] %s is not a valid IPv4 address!"%target	
+					return False
+	else:
+		try:
+			socket.gethostbyname(target)
+		
+		except socket.gaierror as e:
+			if e.errno == 8:
+				print "[-] %s is not a valid target!"%target
+				return False
+				
 	if not re.search(r'[:]', target):
 		print "[*] Target %s specified without a port number, using default port 22"%target
 		target = target+':22'
@@ -68,7 +79,7 @@ def parse_target(target):
 
 	try:
 		print "[*] Initiating scan for %s on port %s" %(ipport[0], ipport[1])
-		if not get_output(exchange(connection(), ipport[0], int(ipport[1]))):
+		if not get_output(exchange(ipport[0], int(ipport[1]))):
 			return False
 	
 	except IndexError:
@@ -95,19 +106,25 @@ def list_parser(list):
 			if parse_target(target) == False:
 				error+=1
 		if error > 0:
-			print "[*] Scan completed for %i out of %i targets!" %((len(targets)-error), len(targets))
+			if error == len(targets):
+				print "[*] Scan failed for all %i hosts!"%len(targets)
+			else:
+				print "[*] Scan completed for %i out of %i targets!" %((len(targets)-error), len(targets))
 
 	except IOError as e:
-		print "    [-]  %s"%re.sub(r'\[Errno\ ([0-9]){1,}\]\ ','', str(e))
+		if e.filename:
+			print "[-] %s: '%s'"%(e.strerror, e.filename)
+		else:
+			print "[-] %s"%e.strerror
 		sys.exit(2)
 
 def get_output(ciphers):
 	if ciphers:
 		d = ciphers.split(',')
-		weak_ciphers = ['aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc','aes192-cbc',\
-'aes256-cbc','rijndael-cbc@lysator.liu.se','aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc',\
-'aes192-cbc','aes256-cbc','rijndael-cbc@lysator.liu.se','hmac-md5',\
-'hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96','hmac-md5-96,hmac-md5','hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96','hmac-md5-96']
+		weak_ciphers = ['aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc','aes192-cbc', 'aes256-cbc',\
+'rijndael-cbc@lysator.liu.se','aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc','aes192-cbc'\
+'aes256-cbc','rijndael-cbc@lysator.liu.se','hmac-md5','hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96',\
+'hmac-md5-96,hmac-md5','hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96','hmac-md5-96']
 		rawcipher = []
 		weak = []
 		for i in list(d):
