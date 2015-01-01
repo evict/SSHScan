@@ -54,6 +54,10 @@ def exchange(ip, port):
 	except socket.timeout:
 		print "    [-] Timeout while connecting to %s on port %i\n"%(ip, port)
 		return False
+	
+	except socket.error as e:
+		if e.errno == 61:
+			print "[*] %s" %e.strerror
 
 def parse_target(target):
 	if re.match(r"(^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}($|:[\d]{1,5}$))", target):
@@ -64,7 +68,7 @@ def parse_target(target):
 					return False
 	else:
 		try:
-			socket.gethostbyname(target)
+			socket.gethostbyname(target.split(':')[0])
 		
 		except socket.gaierror as e:
 			if e.errno == 8:
