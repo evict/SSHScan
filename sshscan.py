@@ -57,21 +57,18 @@ def exchange(ip, port):
 	
 	except socket.error as e:
 		if e.errno == 61:
-			print "[*] %s" %e.strerror
+			print "[*] $s %s" %(target, e.strerror)
+			pass
+		else:
+			print "    [-] Error while connecting to %s on port %i\n"%(ip, port)
+			return False
 
 def parse_target(target):
 	if not re.match("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|\
-					1[0-9]{2}|2[0-4][0-9]|25[0-5])($|:([1-9]{1,4}|[1-5][0-9][0-9][0-9][0-9]|\
+					1[0-9]{2}|2[0-4][0-9]|25[0-4])($|:([1-9]{1,4}|[1-5][0-9][0-9][0-9][0-9]|\
 					6[0-4][0-9][0-9][0-9]|6[0-5][0-5][0-3][0-5]))$", target):
-		try:
-			socket.gethostbyname(target.split(':')[0])
-		
-		except socket.gaierror as e:
-			if e.errno == 8:
-				print "[-] %s is not a valid target!"%target
-				return False
-		
-		print "[-] %s is not a valid target!"%target
+	
+		print "[-] %s is not a valid IPv4 address!"%target
 		return False
 				
 	if not re.search(r'[:]', target):
@@ -158,11 +155,11 @@ def get_output(ciphers):
 
 def main():
 	print banner()
-	parser = OptionParser(usage="usage %prog [options]", version="%prog 1.0")
+	parser = OptionParser(usage="usage %prog -t 10.0.0.1:22", version="%prog 1.0")
 	parameters = OptionGroup(parser, "Options")
 
-	parameters.add_option("-t", "--target", type="string", help="Specify target as 'target' or 'target:port' (port 22 is default)", dest="target")
-	parameters.add_option("-l", "--target-list", type="string", help="File with targets: 'target' or 'target:port' seperated by a newline (port 22 is default)", dest="targetlist")
+	parameters.add_option("-t", "--target", type="string", help="Specify target IP or 'IP:PORT' (port 22 is default)", dest="target")
+	parameters.add_option("-l", "--target-list", type="string", help="File with targets: target IP or 'IP:PORT' seperated by a newline (port 22 is default)", dest="targetlist")
 	parser.add_option_group(parameters)
 
 	options, arguments = parser.parse_args()
