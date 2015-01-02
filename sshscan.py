@@ -60,13 +60,9 @@ def exchange(ip, port):
 			print "[*] %s" %e.strerror
 
 def parse_target(target):
-	if re.match(r"(^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}($|:[\d]{1,5}$))", target):
-		target_ = target.split(':')[0].split('.')
-		for i in range(0, len(target_)):
-				if int(target_[i]) > 255:
-					print "[-] %s is not a valid IPv4 address!"%target	
-					return False
-	else:
+	if not re.match("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|\
+					1[0-9]{2}|2[0-4][0-9]|25[0-5])($|:([1-9]{1,4}|[1-5][0-9][0-9][0-9][0-9]|\
+					6[0-4][0-9][0-9][0-9]|6[0-5][0-5][0-3][0-5]))$", target):
 		try:
 			socket.gethostbyname(target.split(':')[0])
 		
@@ -74,6 +70,9 @@ def parse_target(target):
 			if e.errno == 8:
 				print "[-] %s is not a valid target!"%target
 				return False
+		
+		print "[-] %s is not a valid target!"%target
+		return False
 				
 	if not re.search(r'[:]', target):
 		print "[*] Target %s specified without a port number, using default port 22"%target
