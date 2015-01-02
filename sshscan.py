@@ -58,10 +58,16 @@ def exchange(ip, port):
 	except socket.error as e:
 		if e.errno == 61:
 			print "    [-] %s\n"%(e.strerror)
-		
+			pass
+		else:
+			print "    [-] Error while connecting to %s on port %i\n"%(ip, port)
+			return False	
 
 def parse_target(target):
-	if not re.match(r"^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$", target):
+	if not re.match("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|\
+				1[0-9]{2}|2[0-4][0-9]|25[0-5])($|:([1-9]{1,4}|[1-5][0-9][0-9][0-9][0-9]|\
+				1[0-9]{2}|2[0-4][0-9]|25[0-4])($|:([1-9]{1,4}|[1-5][0-9][0-9][0-9][0-9]|\
+				6[0-4][0-9][0-9][0-9]|6[0-5][0-5][0-3][0-5])))$", target):
 		try:
 			socket.gethostbyname(target.split(':')[0])
 		
