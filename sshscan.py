@@ -63,37 +63,43 @@ def exchange(ip, port):
 			print "    [-] Error while connecting to %s on port %i\n"%(ip, port)
 			return False	
 
-def parse_target(target):
+def validate_target(target):
 	if not re.match("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|\
-				1[0-9]{2}|2[0-4][0-9]|25[0-5])($|:([1-9]{1,4}|[1-5][0-9][0-9][0-9][0-9]|\
 				1[0-9]{2}|2[0-4][0-9]|25[0-4])($|:([1-9]{1,4}|[1-5][0-9][0-9][0-9][0-9]|\
-				6[0-4][0-9][0-9][0-9]|6[0-5][0-5][0-3][0-5])))$", target):
-		try:
-			socket.gethostbyname(target.split(':')[0])
+				6[0-4][0-9][0-9][0-9]|6[0-5][0-5][0-3][0-5]))$", target):
 		
-		except socket.gaierror as e:
-			if e.errno == 8:
-				print "[-] %s is not a valid target!"%target
-				return False
+		if re.match("^(([a-zA-Z0-9-.]|[a-z][a-z0-9]-.)*)([a-zA-Z0-9])($|:([1-9]{1,4}|[1-5][0-9][0-9][0-9][0-9]|\
+                    6[0-4][0-9][0-9][0-9]|6[0-5][0-5][0-3][0-5]))$", target):
 				
-	if not re.search(r'[:]', target):
-		print "[*] Target %s specified without a port number, using default port 22"%target
-		target = target+':22'
-	
-	ipport=target.split(':')
-
-	try:
-		print "[*] Initiating scan for %s on port %s" %(ipport[0], ipport[1])
-		if not get_output(exchange(ipport[0], int(ipport[1]))):
+			return target
+		else:
+			print "[-] %s it not a valid target!"%target
 			return False
+
+	else:
+		return target
+
+def parse_target(target):
+	if validate_target(target):
+
+		if not re.search(r'[:*]', target):
+			print "[*] Target %s specified without a port number, using default port 22"%target
+			target = target+':22'
 	
-	except IndexError:
-		print "    [-] Please specify target as 'target:port'!\n"
-		return False	
+		ipport=target.split(':')
+
+		try:
+			print "[*] Initiating scan for %s on port %s" %(ipport[0], ipport[1])
+			if not get_output(exchange(ipport[0], int(ipport[1]))):
+				return False
 	
-	except ValueError:
-		print "    [-] Target port error, please specify a valid port!\n"
-		return False	
+		except IndexError:
+			print "    [-] Please specify target as 'target:port'!\n"
+			return False	
+	
+		except ValueError:
+			print "    [-] Target port error, please specify a valid port!\n"
+			return False	
 
 def list_parser(list):
 	try:
@@ -178,7 +184,7 @@ def main():
 		if targetlist:
 			list_parser(targetlist)
 		else:
-			print "    [-] No target specified!"
+			print "[-] No target specified!"
 			sys.exit(0)
 
 if __name__ == '__main__':
