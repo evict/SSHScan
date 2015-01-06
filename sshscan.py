@@ -132,22 +132,17 @@ def list_parser(list):
 def get_output(ciphers):
 	if ciphers:
 		d = ciphers.split(',')
-		weak_ciphers = ['aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc','aes192-cbc', 'aes256-cbc',\
-'rijndael-cbc@lysator.liu.se','aes128-cbc','3des-cbc','blowfish-cbc','cast128-cbc','aes192-cbc'\
-'aes256-cbc','rijndael-cbc@lysator.liu.se','hmac-md5','hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96',\
-'hmac-md5-96,hmac-md5','hmac-sha2-256-96','hmac-sha2-512-96','hmac-sha1-96','hmac-md5-96']
+		strong_ciphers = ['curve25519-sha256', 'diffie-hellman-group-exchange-sha256', 'aes128-ctr', 'aes192-ctr', 'aes256-ctr',
+						 'aes128-gcm', 'aes256-gcm', 'chacha20-poly1305','hmac-sha2-512-etm@openssh.com' ,'hmac-sha2-256-etm@openssh.com']
 		rawcipher = []
-		weak = []
 		for i in list(d):
 			ci = re.sub(r'[^ -~].*', '', i)
 			rawcipher.append(ci)
-			for j in weak_ciphers:
-				if ci == j:
-					weak.append(ci)
 		cipherlist = []
 		for i in set(rawcipher):
 			if i:
 				cipherlist.append(i)
+		weak_ciphers = list(set(cipherlist) - set(strong_ciphers))
 		cols = 3
 		while len(cipherlist) % cols != 0:
 			cipherlist.append('')
@@ -159,7 +154,7 @@ def get_output(ciphers):
 
 		print "\n"	
 
-		print '    [+] Detected the following weak ciphers:\n        [!] ' + '\n        [!] ' ''.join([str(item) for item in set(weak)]) + '\n'
+		print '    [+] Detected the following weak ciphers:\n        [!] ' + '\n        [!] ' ''.join([str(item) for item in set(weak_ciphers)]) + '\n'
 		return True
 	else:
 		return False
