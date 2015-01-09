@@ -145,7 +145,7 @@ def get_output(ciphers):
 		weak_ciphers = list(set(cipherlist) - set(strong_ciphers))
 		print '    [+] Detected the following ciphers: '  			
 		print_columns(cipherlist)
-		print '    [+] Detected the following weak ciphers:   '
+		print '    [+] Detected the following weak ciphers: '
 		print_columns(weak_ciphers)
 		return True
 	else:
@@ -163,53 +163,32 @@ def print_columns(cipherlist):
 	print "\n"
 
 def main():
-	print banner()
-	parser = OptionParser(usage="usage %prog [options]", version="%prog 1.0")
-	parameters = OptionGroup(parser, "Options")
+	try:
+		print banner()
+		parser = OptionParser(usage="usage %prog [options]", version="%prog 1.0")
+		parameters = OptionGroup(parser, "Options")
+	
+		parameters.add_option("-t", "--target", type="string", help="Specify target as 'target' or 'target:port' (port 22 is default)", dest="target")
+		parameters.add_option("-l", "--target-list", type="string", help="File with targets: 'target' or 'target:port' seperated by a newline (port 22 is default)", dest="targetlist")
+		parser.add_option_group(parameters)
 
-	parameters.add_option("-t", "--target", type="string", help="Specify target as 'target' or 'target:port' (port 22 is default)", dest="target")
-	parameters.add_option("-l", "--target-list", type="string", help="File with targets: 'target' or 'target:port' seperated by a newline (port 22 is default)", dest="targetlist")
-	parser.add_option_group(parameters)
+		options, arguments = parser.parse_args()
 
-	options, arguments = parser.parse_args()
+		target = options.target
+		targetlist = options.targetlist
 
-	target = options.target
-	targetlist = options.targetlist
-
-	if target:
-		parse_target(target)		
-	else:
-		if targetlist:
-			list_parser(targetlist)
+		if target:
+			parse_target(target)		
 		else:
-			print "[-] No target specified!"
-			sys.exit(0)
+			if targetlist:
+				list_parser(targetlist)
+			else:
+				print "[-] No target specified!"
+				sys.exit(0)
 
-if __name__ == '__main__':
-	main()
-
-def main():
-	print banner()
-	parser = OptionParser(usage="usage %prog [options]", version="%prog 1.0")
-	parameters = OptionGroup(parser, "Options")
-
-	parameters.add_option("-t", "--target", type="string", help="Specify target as 'target' or 'target:port' (port 22 is default)", dest="target")
-	parameters.add_option("-l", "--target-list", type="string", help="File with targets: 'target' or 'target:port' seperated by a newline (port 22 is default)", dest="targetlist")
-	parser.add_option_group(parameters)
-
-	options, arguments = parser.parse_args()
-
-	target = options.target
-	targetlist = options.targetlist
-
-	if target:
-		parse_target(target)		
-	else:
-		if targetlist:
-			list_parser(targetlist)
-		else:
-			print "[-] No target specified!"
-			sys.exit(0)
+	except KeyboardInterrupt:
+		print "\n[-] ^C Pressed, quitting!"
+		sys.exit(3)		
 
 if __name__ == '__main__':
 	main()
