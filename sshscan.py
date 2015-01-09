@@ -143,21 +143,50 @@ def get_output(ciphers):
 			if i:
 				cipherlist.append(i)
 		weak_ciphers = list(set(cipherlist) - set(strong_ciphers))
-		cols = 3
-		while len(cipherlist) % cols != 0:
-			cipherlist.append('')
-		else:
-			split = [cipherlist[i:i+len(cipherlist)/cols] for i in range(0, len(cipherlist), len(cipherlist)/cols)]
-			print '    [+] Detected the following ciphers: '  			
-			for row in zip(*split):
-				print "            " + "".join(str.ljust(c,37) for c in row)
-
-		print "\n"	
-
-		print '    [+] Detected the following weak ciphers:\n        [!] ' + '\n        [!] ' ''.join([str(item) for item in set(weak_ciphers)]) + '\n'
+		print '    [+] Detected the following ciphers: '  			
+		print_columns(cipherlist)
+		print '    [+] Detected the following weak ciphers:   '
+		print_columns(weak_ciphers)
 		return True
 	else:
 		return False
+
+def print_columns(cipherlist):
+	cols = 3
+	while len(cipherlist) % cols != 0:
+		cipherlist.append('')
+	else:
+		split = [cipherlist[i:i+len(cipherlist)/cols] for i in range(0, len(cipherlist), len(cipherlist)/cols)]
+		for row in zip(*split):
+			print "            " + "".join(str.ljust(c,37) for c in row)
+	
+	print "\n"
+
+def main():
+	print banner()
+	parser = OptionParser(usage="usage %prog [options]", version="%prog 1.0")
+	parameters = OptionGroup(parser, "Options")
+
+	parameters.add_option("-t", "--target", type="string", help="Specify target as 'target' or 'target:port' (port 22 is default)", dest="target")
+	parameters.add_option("-l", "--target-list", type="string", help="File with targets: 'target' or 'target:port' seperated by a newline (port 22 is default)", dest="targetlist")
+	parser.add_option_group(parameters)
+
+	options, arguments = parser.parse_args()
+
+	target = options.target
+	targetlist = options.targetlist
+
+	if target:
+		parse_target(target)		
+	else:
+		if targetlist:
+			list_parser(targetlist)
+		else:
+			print "[-] No target specified!"
+			sys.exit(0)
+
+if __name__ == '__main__':
+	main()
 
 def main():
 	print banner()
