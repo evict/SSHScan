@@ -79,7 +79,7 @@ def validate_target(target):
 	else:
 		return target
 
-def parse_target(target):
+def parse_target(target, level=1):
 	if validate_target(target):
 
 		if not re.search(r'[:*]', target):
@@ -101,7 +101,7 @@ def parse_target(target):
 			print "    [-] Target port error, please specify a valid port!\n"
 			return False	
 
-def list_parser(list):
+def list_parser(list, level=1):
 	try:
 		fd=open(list, 'r')
 		targetlist = fd.read().split('\n')
@@ -132,8 +132,7 @@ def list_parser(list):
 def get_output(ciphers):
 	if ciphers:
 		d = ciphers.split(',')
-		strong_ciphers = ['curve25519-sha256', 'diffie-hellman-group-exchange-sha256', 'aes128-ctr', 'aes192-ctr', 'aes256-ctr',
-						 'aes128-gcm', 'aes256-gcm', 'chacha20-poly1305','hmac-sha2-512-etm@openssh.com' ,'hmac-sha2-256-etm@openssh.com']
+		strong_ciphers = ['hmac-sha2-512-etm@openssh.com','hmac-sha2-256-etm@openssh.com','hmac-ripemd160-etm@openssh.com','umac-128-etm@openssh.com','hmac-sha2-512','hmac-sha2-256','hmac-ripemd160','umac-128@openssh.com','chacha20-poly1305@openssh.com','aes256-gcm@openssh.com','aes128-gcm@openssh.com','aes256-ctr','aes192-ctr','aes128-ctr','curve25519-sha256@libssh.org','diffie-hellman-group-exchange-sha256']
 		rawcipher = []
 		for i in list(d):
 			ci = re.sub(r'[^ -~].*', '', i)
