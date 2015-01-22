@@ -138,17 +138,26 @@ def get_output(ciphers):
 			ci = re.sub(r'[^ -~].*', '', i)
 			rawcipher.append(ci)
 		cipherlist = []
+		compression = False
 		for i in set(rawcipher):
 			if i:
 				cipherlist.append(i)
+				for i in cipherlist:
+					if i == "zlib@openssh.com":
+						cipherlist.remove(i)
+						compression = True
 		weak_ciphers = list(set(cipherlist) - set(strong_ciphers))
 		print '    [+] Detected the following ciphers: '  			
 		print_columns(cipherlist)
-		print '    [+] Detected the following weak ciphers: '
-		print_columns(weak_ciphers)
-		return True
-	else:
-		return False
+		if compression == True:
+			print "    [+] Compression has been enabled!"
+		if weak_ciphers:
+			print '    [+] Detected the following weak ciphers: '
+			print_columns(weak_ciphers)
+			return True
+		else:
+			print '    [+] No weak ciphers detected!'	
+			return False
 
 def print_columns(cipherlist):
 	cols = 3
