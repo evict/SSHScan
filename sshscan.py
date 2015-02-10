@@ -131,7 +131,9 @@ def list_parser(list, level=1):
 
 def get_output(ciphers):
 	if ciphers:
+		ciphers = re.sub('\)', ',', ciphers)
 		d = ciphers.split(',')
+		
 		strong_ciphers = ['hmac-sha2-512-etm@openssh.com','hmac-sha2-256-etm@openssh.com','hmac-ripemd160-etm@openssh.com','umac-128-etm@openssh.com','hmac-sha2-512','hmac-sha2-256','hmac-ripemd160','umac-128@openssh.com','chacha20-poly1305@openssh.com','aes256-gcm@openssh.com','aes128-gcm@openssh.com','aes256-ctr','aes192-ctr','aes128-ctr','curve25519-sha256@libssh.org','diffie-hellman-group-exchange-sha256']
 		rawcipher = []
 		for i in list(d):
