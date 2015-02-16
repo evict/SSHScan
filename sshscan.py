@@ -129,40 +129,81 @@ def list_parser(list, level=1):
 			print "[-] %s"%e.strerror
 		sys.exit(2)
 
-def get_output(ciphers):
-	if ciphers:
-		ciphers = re.sub('\)', ',', ciphers)
-		d = ciphers.split(',')
-		
-		strong_ciphers = ['hmac-sha2-512-etm@openssh.com','hmac-sha2-256-etm@openssh.com','hmac-ripemd160-etm@openssh.com','umac-128-etm@openssh.com','hmac-sha2-512','hmac-sha2-256','hmac-ripemd160','umac-128@openssh.com','chacha20-poly1305@openssh.com','aes256-gcm@openssh.com','aes128-gcm@openssh.com','aes256-ctr','aes192-ctr','aes128-ctr','curve25519-sha256@libssh.org','diffie-hellman-group-exchange-sha256']
-		rawcipher = []
+def get_output(rawlist):
+	if rawlist:
+		rawlist = re.sub('\)', ',', rawlist)
+		d = rawlist.split(',')
+		ciphers = ['3des-cbc','aes128-cbc','aes192-cbc','aes256-cbc','aes128-ctr','aes192-ctr','aes256-ctr','aes128-gcm@openssh.com','aes256-gcm@openssh.com','arcfour','arcfour128','arcfour256','blowfish-cbc','cast128-cbc','chacha20-poly1305@openssh.com']
+		strong_ciphers = ['chacha20-poly1305@openssh.com','aes256-gcm@openssh.com','aes128-gcm@openssh.com','aes256-ctr','aes192-ctr','aes128-ctr']
+		weak_ciphers = []
+		macs = ['hmac-md5','hmac-md5-96','hmac-ripemd160','hmac-sha1','hmac-sha1-96','hmac-sha2-256','hmac-sha2-512','umac-64','umac-128','hmac-md5-etm@openssh.com','hmac-md5-96-etm@openssh.com','hmac-ripemd160-etm@openssh.com','hmac-sha1-etm@openssh.com','hmac-sha1-96-etm@openssh.com','hmac-sha2-256-etm@openssh.com','hmac-sha2-512-etm@openssh.com','umac-64-etm@openssh.com','umac-128-etm@openssh.com']	
+		strong_macs = ['hmac-sha2-512-etm@openssh.com','hmac-sha2-256-etm@openssh.com','hmac-ripemd160-etm@openssh.com','umac-128-etm@openssh.com','hmac-sha2-512','hmac-sha2-256','hmac-ripemd160','umac-128@openssh.com']
+		weak_macs = [] 
+		kex = ['curve25519-sha256','diffie-hellman-group1-sha1','diffie-hellman-group14-sha1','diffie-hellman-group-exchange-sha1','diffie-hellman-group-exchange-sha256','ecdh-sha2-nistp256','ecdh-sha2-nistp384','ecdh-sha2-nistp521']
+		strong_kex = ['curve25519-sha256@libssh.org','diffie-hellman-group-exchange-sha256']
+		weak_kex = []
+		rlist = []
 		for i in list(d):
 			ci = re.sub(r'[^ -~].*', '', i)
-			rawcipher.append(ci)
-		cipherlist = []
+			rlist.append(ci)
+		clean_list = []
 		compression = False
-		for i in set(rawcipher):
+		for i in set(rlist):
 			if i:
-				cipherlist.append(i)
-				for i in cipherlist:
+				clean_list.append(i)
+				for i in clean_list:
 					if i == "zlib@openssh.com":
-						cipherlist.remove(i)
+						clean_list.remove(i)
 						compression = True
-		weak_ciphers = list(set(cipherlist) - set(strong_ciphers))
+		dmacs = []
+		for i in macs:
+			if i in clean_list:
+				dmacs.append(i)
+				if i not in strong_macs:
+					weak_macs.append(i)
+		dciphers = []
+		for i in ciphers:
+			if i in clean_list:
+				dciphers.append(i)
+				if i not in strong_ciphers:
+					weak_ciphers.append(i)
+		dkex = []
+		for i in kex:
+			if i in clean_list:
+				dkex.append(i)
+				if i not in strong_kex:
+					weak_kex.append(i)
+
 		print '    [+] Detected the following ciphers: '  			
-		print_columns(cipherlist)
+		print_columns(dciphers)
+		print '    [+] Detected the following KEX algorithms: '  			
+		print_columns(dkex)
+		print '    [+] Detected the following MACs: '  			
+		print_columns(dmacs)
 		if compression == True:
 			print "    [+] Compression has been enabled!"
+
 		if weak_ciphers:
 			print '    [+] Detected the following weak ciphers: '
 			print_columns(weak_ciphers)
-			return True
 		else:
 			print '    [+] No weak ciphers detected!'	
-			return False
+
+		if weak_kex:
+			print '    [+] Detected the following weak KEX algorithms: '
+			print_columns(weak_kex)
+		else:
+			print '    [+] No weak KEX detected!'	
+
+		if weak_macs:
+			print '    [+] Detected the following weak MACs: '
+			print_columns(weak_macs)
+		else:
+			print '    [+] No weak MACs detected!'	
 
 def print_columns(cipherlist):
-	cols = 3
+	# adjust the amount of columns to display 
+	cols = 2
 	while len(cipherlist) % cols != 0:
 		cipherlist.append('')
 	else:
