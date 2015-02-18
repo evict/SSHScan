@@ -81,7 +81,7 @@ def validate_target(target):
 	else:
 		return target
 
-def parse_target(target, level=1):
+def parse_target(target):
 	if validate_target(target):
 
 		if not re.search(r'[:*]', target):
@@ -103,7 +103,7 @@ def parse_target(target, level=1):
 			print "    [-] Target port error, please specify a valid port!\n"
 			return False	
 
-def list_parser(list, level=1):
+def list_parser(list):
 	try:
 		fd=open(list, 'r')
 		targetlist = fd.read().split('\n')
@@ -182,8 +182,6 @@ def get_output(rawlist):
 		print_columns(dkex)
 		print '    [+] Detected the following MACs: '  			
 		print_columns(dmacs)
-		if compression == True:
-			print "    [+] Compression has been enabled!"
 
 		if weak_ciphers:
 			print '    [+] Detected the following weak ciphers: '
@@ -202,6 +200,9 @@ def get_output(rawlist):
 			print_columns(weak_macs)
 		else:
 			print '    [+] No weak MACs detected!'	
+
+		if compression == True:
+			print "    [+] Compression has been enabled!"
 
 def print_columns(cipherlist):
 	# adjust the amount of columns to display 
