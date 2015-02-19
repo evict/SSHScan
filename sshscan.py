@@ -133,49 +133,39 @@ def list_parser(list):
 
 def get_output(rawlist):
 	if rawlist:
-		rawlist = re.sub('\)', ',', rawlist)
-		d = rawlist.split(',')
 		ciphers = ['3des-cbc','aes128-cbc','aes192-cbc','aes256-cbc','aes128-ctr','aes192-ctr','aes256-ctr','aes128-gcm@openssh.com','aes256-gcm@openssh.com','arcfour','arcfour128','arcfour256','blowfish-cbc','cast128-cbc','chacha20-poly1305@openssh.com']
 		strong_ciphers = ['chacha20-poly1305@openssh.com','aes256-gcm@openssh.com','aes128-gcm@openssh.com','aes256-ctr','aes192-ctr','aes128-ctr']
 		weak_ciphers = []
-		macs = ['hmac-md5','hmac-md5-96','hmac-ripemd160','hmac-sha1','hmac-sha1-96','hmac-sha2-256','hmac-sha2-512','umac-64','umac-128','hmac-md5-etm@openssh.com','hmac-md5-96-etm@openssh.com','hmac-ripemd160-etm@openssh.com','hmac-sha1-etm@openssh.com','hmac-sha1-96-etm@openssh.com','hmac-sha2-256-etm@openssh.com','hmac-sha2-512-etm@openssh.com','umac-64-etm@openssh.com','umac-128-etm@openssh.com']	
+	   	macs = ['hmac-md5','hmac-md5-96','hmac-ripemd160','hmac-sha1','hmac-sha1-96','hmac-sha2-256','hmac-sha2-512','umac-64','umac-128','hmac-md5-etm@openssh.com','hmac-md5-96-etm@openssh.com','hmac-ripemd160-etm@openssh.com','hmac-sha1-etm@openssh.com','hmac-sha1-96-etm@openssh.com','hmac-sha2-256-etm@openssh.com','hmac-sha2-512-etm@openssh.com','umac-64-etm@openssh.com','umac-128-etm@openssh.com']	
 		strong_macs = ['hmac-sha2-512-etm@openssh.com','hmac-sha2-256-etm@openssh.com','hmac-ripemd160-etm@openssh.com','umac-128-etm@openssh.com','hmac-sha2-512','hmac-sha2-256','hmac-ripemd160','umac-128@openssh.com']
 		weak_macs = [] 
-		kex = ['curve25519-sha256','diffie-hellman-group1-sha1','diffie-hellman-group14-sha1','diffie-hellman-group-exchange-sha1','diffie-hellman-group-exchange-sha256','ecdh-sha2-nistp256','ecdh-sha2-nistp384','ecdh-sha2-nistp521']
+		kex = ['curve25519-sha256@libssh.org','diffie-hellman-group1-sha1','diffie-hellman-group14-sha1','diffie-hellman-group-exchange-sha1','diffie-hellman-group-exchange-sha256','ecdh-sha2-nistp256','ecdh-sha2-nistp384','ecdh-sha2-nistp521']
 		strong_kex = ['curve25519-sha256@libssh.org','diffie-hellman-group-exchange-sha256']
 		weak_kex = []
-		rlist = []
-		for i in list(d):
-			ci = re.sub(r'[^ -~].*', '', i)
-			rlist.append(ci)
-		clean_list = []
-		compression = False
-		for i in set(rlist):
-			if i:
-				clean_list.append(i)
-				for i in clean_list:
-					if i == "zlib@openssh.com":
-						clean_list.remove(i)
-						compression = True
 		dmacs = []
 		for i in macs:
-			if i in clean_list:
+			m = re.search(i, rawlist)
+			if m:
 				dmacs.append(i)
 				if i not in strong_macs:
 					weak_macs.append(i)
 		dciphers = []
 		for i in ciphers:
-			if i in clean_list:
+			m = re.search(i, rawlist)
+			if m:
 				dciphers.append(i)
 				if i not in strong_ciphers:
 					weak_ciphers.append(i)
 		dkex = []
 		for i in kex:
-			if i in clean_list:
+			m = re.search(i, rawlist)
+			if m:
 				dkex.append(i)
 				if i not in strong_kex:
 					weak_kex.append(i)
-
+		compression = False
+		if re.search("zlib@openssh.com", rawlist):
+			compression = True
 		print '    [+] Detected the following ciphers: '  			
 		print_columns(dciphers)
 		print '    [+] Detected the following KEX algorithms: '  			
