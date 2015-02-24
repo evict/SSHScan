@@ -114,15 +114,8 @@ def list_parser(list):
 
 		print "[*] List contains %i targets to scan" %len(targets)
 
-		error = 0
-		for target in targets:
-			if parse_target(target) == False:
-				error+=1
-		if error > 0:
-			if error == len(targets):
-				print "[*] Scan failed for all %i hosts!"%len(targets)
-			else:
-				print "[*] Scan completed for %i out of %i targets!" %((len(targets)-error), len(targets))
+		for i in targets:
+			parse_target(i)
 
 	except IOError as e:
 		if e.filename:
