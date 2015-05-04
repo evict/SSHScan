@@ -142,6 +142,9 @@ def get_output(rawlist):
 		kex = ['curve25519-sha256@libssh.org','diffie-hellman-group1-sha1','diffie-hellman-group14-sha1','diffie-hellman-group-exchange-sha1','diffie-hellman-group-exchange-sha256','ecdh-sha2-nistp256','ecdh-sha2-nistp384','ecdh-sha2-nistp521','ecdsa-sha2-nistp256-cert-v01@openssh.com','ecdsa-sha2-nistp384-cert-v01@openssh.com','ecdsa-sha2-nistp521-cert-v01@openssh.com']
 		strong_kex = ['curve25519-sha256@libssh.org','diffie-hellman-group-exchange-sha256']
 		weak_kex = []
+		hka = ['ecdsa-sha2-nistp256-cert-v01@openssh.com','ecdsa-sha2-nistp384-cert-v01@openssh.com','ecdsa-sha2-nistp521-cert-v01@openssh.com','ssh-ed25519-cert-v01@openssh.com','ssh-rsa-cert-v01@openssh.com','ssh-dss-cert-v01@openssh.com','ssh-rsa-cert-v00@openssh.com','ssh-dss-cert-v00@openssh.com','ecdsa-sha2-nistp256','ecdsa-sha2-nistp384','ecdsa-sha2-nistp521','ssh-ed25519','ssh-rsa','ssh-dss']
+		strong_hka = ['ssh-rsa-cert-v01@openssh.com','ssh-ed25519-cert-v01@openssh.com','ssh-rsa-cert-v00@openssh.com','ssh-rsa','ssh-ed25519']
+		weak_hka = []
 		dmacs = []
 		for i in macs:
 			m = re.search(i, rawlist)
@@ -163,6 +166,13 @@ def get_output(rawlist):
 				dkex.append(i)
 				if i not in strong_kex:
 					weak_kex.append(i)
+		dhka = []
+		for i in hka:
+			m = re.search(i, rawlist)
+			if m:
+				dhka.append(i)
+				if i not in strong_hka:
+					weak_hka.append(i)
 		compression = False
 		if re.search("zlib@openssh.com", rawlist):
 			compression = True
@@ -172,6 +182,8 @@ def get_output(rawlist):
 		print_columns(dkex)
 		print '    [+] Detected the following MACs: '  			
 		print_columns(dmacs)
+		print '    [+] Detected the following HostKey algorithms: '  			
+		print_columns(dhka)
 
 		if weak_ciphers:
 			print '    [+] Detected the following weak ciphers: '
@@ -191,6 +203,12 @@ def get_output(rawlist):
 		else:
 			print '    [+] No weak MACs detected!'	
 
+		if weak_hka:
+			print '    [+] Detected the following weak HostKey algorithms: '
+			print_columns(weak_hka)
+		else:
+			print '    [+] No weak HostKey algorithms detected!'	
+
 		if compression == True:
 			print "    [+] Compression has been enabled!"
 		
@@ -205,9 +223,8 @@ def print_columns(cipherlist):
 		split = [cipherlist[i:i+len(cipherlist)/cols] for i in range(0, len(cipherlist), len(cipherlist)/cols)]
 		for row in zip(*split):
 			print "            " + "".join(str.ljust(c,37) for c in row)
-	
 	print "\n"
-
+	
 def main():
 	try:
 		print banner()
