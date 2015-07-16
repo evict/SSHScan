@@ -140,7 +140,7 @@ def get_output(rawlist):
 		strong_macs = ['hmac-sha2-512-etm@openssh.com','hmac-sha2-256-etm@openssh.com','hmac-ripemd160-etm@openssh.com','umac-128','umac-128-etm@openssh.com','hmac-sha2-512','hmac-sha2-256','hmac-ripemd160','umac-128@openssh.com']
 		weak_macs = [] 
 		kex = ['curve25519-sha256@libssh.org','diffie-hellman-group1-sha1','diffie-hellman-group14-sha1','diffie-hellman-group-exchange-sha1','diffie-hellman-group-exchange-sha256','ecdh-sha2-nistp256','ecdh-sha2-nistp384','ecdh-sha2-nistp521','ecdsa-sha2-nistp256-cert-v01@openssh.com','ecdsa-sha2-nistp384-cert-v01@openssh.com','ecdsa-sha2-nistp521-cert-v01@openssh.com']
-		strong_kex = ['curve25519-sha256@libssh.org','diffie-hellman-group-exchange-sha256']
+		strong_kex = ['curve25519-sha256@libssh.org']
 		weak_kex = []
 		hka = ['ecdsa-sha2-nistp256-cert-v01@openssh.com','ecdsa-sha2-nistp384-cert-v01@openssh.com','ecdsa-sha2-nistp521-cert-v01@openssh.com','ssh-ed25519-cert-v01@openssh.com','ssh-rsa-cert-v01@openssh.com','ssh-dss-cert-v01@openssh.com','ssh-rsa-cert-v00@openssh.com','ssh-dss-cert-v00@openssh.com','ecdsa-sha2-nistp256','ecdsa-sha2-nistp384','ecdsa-sha2-nistp521','ssh-ed25519','ssh-rsa','ssh-dss']
 		strong_hka = ['ssh-rsa-cert-v01@openssh.com','ssh-ed25519-cert-v01@openssh.com','ssh-rsa-cert-v00@openssh.com','ssh-rsa','ssh-ed25519']
