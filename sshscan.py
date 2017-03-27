@@ -66,20 +66,31 @@ def exchange(ip, port):
 			return False	
 
 def validate_target(target):
-	if not re.match("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9][0-9]|\
-				1[0-9]{2}|2[0-4][0-9]|25[0-4])($|:([0-9]{1,4}|[1-5][0-9][0-9][0-9][0-9]|\
-				6[0-4][0-9][0-9][0-9]|6[0-5][0-5][0-3][0-5]))$", target):
-		
-		if re.match("^(([a-zA-Z0-9-.]|[a-z][a-z0-9]-.)*)([a-zA-Z0-9])($|:([1-9]{1,4}|[1-5][0-9][0-9][0-9][0-9]|\
-                    6[0-4][0-9][0-9][0-9]|6[0-5][0-5][0-3][0-5]))$", target):
-				
-			return target
-		else:
+	list = target.split(":")
+	if len(list) != 1 and len(list) != 2: # only valid states
+		print "[-] %s it not a valid target!"%target
+		return False	
+	hostname = list[0]
+	if len(hostname) > 255:
+		print "[-] %s it not a valid target!"%target
+		return False
+	if hostname[-1] == ".":
+		hostname = hostname[:-1] # strip exactly one dot from the right, if present
+	allowed = re.compile("(?!-)[A-Z\d-]{1,63}(?<!-)$", re.IGNORECASE)
+	if not all(allowed.match(x) for x in hostname.split(".")):
+		print "[-] %s it not a valid target!"%target
+		return False
+	if len(list) == 2: # there is a specific port indication
+		port = list[1]
+		try:
+			validport = int(port)
+			if validport < 1 or validport > 65535:
+				print "[-] %s it not a valid target!"%target
+				return False
+		except ValueError:
 			print "[-] %s it not a valid target!"%target
 			return False
-
-	else:
-		return target
+	return target
 
 def parse_target(target):
 	if validate_target(target):
