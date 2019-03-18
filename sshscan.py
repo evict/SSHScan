@@ -43,52 +43,52 @@ def banner():
 def exchange(ip, port):
 	try:
 		conn = socket.create_connection((ip, port),5)
-		print "[*] Connected to %s on port %i..."%(ip, port)
+		print("[*] Connected to %s on port %i..."%(ip, port))
 		version = conn.recv(50).split('\n')[0]
 		conn.send('SSH-2.0-OpenSSH_6.0p1\r\n')
-		print "    [+] Target SSH version is: %s" %version
-		print "    [+] Retrieving ciphers..."
+		print("    [+] Target SSH version is: %s" %version)
+		print("    [+] Retrieving ciphers...")
 		ciphers = conn.recv(984)
 		conn.close()
 
 		return ciphers
 
 	except socket.timeout:
-		print "    [-] Timeout while connecting to %s on port %i\n"%(ip, port)
+		print("    [-] Timeout while connecting to %s on port %i\n"%(ip, port))
 		return False
 
 	except socket.error as e:
 		if e.errno == 61:
-			print "    [-] %s\n"%(e.strerror)
+			print("    [-] %s\n"%(e.strerror))
 			pass
 		else:
-			print "    [-] Error while connecting to %s on port %i\n"%(ip, port)
+			print("    [-] Error while connecting to %s on port %i\n"%(ip, port))
 			return False
 
 def validate_target(target):
 	list = target.split(":")
 	if len(list) != 1 and len(list) != 2: # only valid states
-		print "[-] %s is not a valid target!"%target
+		print("[-] %s is not a valid target!"%target)
 		return False
 	hostname = list[0]
 	if len(hostname) > 255:
-		print "[-] %s is not a valid target!"%target
+		print("[-] %s is not a valid target!"%target)
 		return False
 	if hostname[-1] == ".":
 		hostname = hostname[:-1] # strip exactly one dot from the right, if present
 	allowed = re.compile("(?!-)[A-Z\d-]{1,63}(?<!-)$", re.IGNORECASE)
 	if not all(allowed.match(x) for x in hostname.split(".")):
-		print "[-] %s is not a valid target!"%target
+		print("[-] %s is not a valid target!"%target)
 		return False
 	if len(list) == 2: # there is a specific port indication
 		port = list[1]
 		try:
 			validport = int(port)
 			if validport < 1 or validport > 65535:
-				print "[-] %s is not a valid target!"%target
+				print("[-] %s is not a valid target!"%target)
 				return False
 		except ValueError:
-			print "[-] %s is not a valid target!"%target
+			print("[-] %s is not a valid target!"%target)
 			return False
 	return target
 
@@ -96,22 +96,22 @@ def parse_target(target):
 	if validate_target(target):
 
 		if not re.search(r'[:*]', target):
-			print "[*] Target %s specified without a port number, using default port 22"%target
+			print("[*] Target %s specified without a port number, using default port 22"%target)
 			target = target+':22'
 
 		ipport=target.split(':')
 
 		try:
-			print "[*] Initiating scan for %s on port %s" %(ipport[0], ipport[1])
+			print("[*] Initiating scan for %s on port %s" %(ipport[0], ipport[1]))
 			if not get_output(exchange(ipport[0], int(ipport[1]))):
 				return False
 
 		except IndexError:
-			print "    [-] Please specify target as 'target:port'!\n"
+			print("    [-] Please specify target as 'target:port'!\n")
 			return False
 
 		except ValueError:
-			print "    [-] Target port error, please specify a valid port!\n"
+			print("    [-] Target port error, please specify a valid port!\n")
 			return False
 
 def list_parser(list):
@@ -123,7 +123,7 @@ def list_parser(list):
 			if target:
 				targets.append(target)
 
-		print "[*] List contains %i targets to scan" %len(targets)
+		print("[*] List contains %i targets to scan" %len(targets))
 
 		error = 0
 		for target in targets:
@@ -131,15 +131,15 @@ def list_parser(list):
 				error+=1
 		if error > 0:
 			if error == len(targets):
-				print "[*] Scan failed for all %i hosts!"%len(targets)
+				print("[*] Scan failed for all %i hosts!"%len(targets))
 			else:
-				print "[*] Scan completed for %i out of %i targets!" %((len(targets)-error), len(targets))
+				print("[*] Scan completed for %i out of %i targets!" %((len(targets)-error), len(targets)))
 
 	except IOError as e:
 		if e.filename:
-			print "[-] %s: '%s'"%(e.strerror, e.filename)
+			print("[-] %s: '%s'"%(e.strerror, e.filename))
 		else:
-			print "[-] %s"%e.strerror
+			print("[-] %s"%e.strerror)
 		sys.exit(2)
 
 def get_output(rawlist):
@@ -187,41 +187,41 @@ def get_output(rawlist):
 		compression = False
 		if re.search("zlib@openssh.com", rawlist):
 			compression = True
-		print '    [+] Detected the following ciphers: '
+		print('    [+] Detected the following ciphers: ')
 		print_columns(dciphers)
-		print '    [+] Detected the following KEX algorithms: '
+		print('    [+] Detected the following KEX algorithms: ')
 		print_columns(dkex)
-		print '    [+] Detected the following MACs: '
+		print('    [+] Detected the following MACs: ')
 		print_columns(dmacs)
-		print '    [+] Detected the following HostKey algorithms: '
+		print('    [+] Detected the following HostKey algorithms: ')
 		print_columns(dhka)
 
 		if weak_ciphers:
-			print '    [+] Detected the following weak ciphers: '
+			print('    [+] Detected the following weak ciphers: ')
 			print_columns(weak_ciphers)
 		else:
-			print '    [+] No weak ciphers detected!'
+			print('    [+] No weak ciphers detected!')
 
 		if weak_kex:
-			print '    [+] Detected the following weak KEX algorithms: '
+			print('    [+] Detected the following weak KEX algorithms: ')
 			print_columns(weak_kex)
 		else:
-			print '    [+] No weak KEX detected!'
+			print('    [+] No weak KEX detected!')
 
 		if weak_macs:
-			print '    [+] Detected the following weak MACs: '
+			print('    [+] Detected the following weak MACs: ')
 			print_columns(weak_macs)
 		else:
-			print '    [+] No weak MACs detected!'
+			print('    [+] No weak MACs detected!')
 
 		if weak_hka:
-			print '    [+] Detected the following weak HostKey algorithms: '
+			print('    [+] Detected the following weak HostKey algorithms: ')
 			print_columns(weak_hka)
 		else:
-			print '    [+] No weak HostKey algorithms detected!'
+			print('    [+] No weak HostKey algorithms detected!')
 
 		if compression == True:
-			print "    [+] Compression has been enabled!"
+			print("    [+] Compression has been enabled!")
 
 		return True
 
@@ -233,12 +233,12 @@ def print_columns(cipherlist):
 	else:
 		split = [cipherlist[i:i+len(cipherlist)/cols] for i in range(0, len(cipherlist), len(cipherlist)/cols)]
 		for row in zip(*split):
-			print "            " + "".join(str.ljust(c,37) for c in row)
-	print "\n"
+			print("            " + "".join(str.ljust(c,37) for c in row))
+	print("\n")
 
 def main():
 	try:
-		print banner()
+		print(banner())
 		parser = OptionParser(usage="usage %prog [options]", version="%prog 1.0")
 		parameters = OptionGroup(parser, "Options")
 
@@ -257,11 +257,11 @@ def main():
 			if targetlist:
 				list_parser(targetlist)
 			else:
-				print "[-] No target specified!"
+				print("[-] No target specified!")
 				sys.exit(0)
 
 	except KeyboardInterrupt:
-		print "\n[-] ^C Pressed, quitting!"
+		print("\n[-] ^C Pressed, quitting!")
 		sys.exit(3)
 
 if __name__ == '__main__':
