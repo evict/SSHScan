@@ -294,7 +294,6 @@ def print_columns(cipherlist):
 
 def main():
     try:
-        print(banner())
         parser = OptionParser(usage="usage %prog [options]",
                               version="%prog 1.0")
         parameters = OptionGroup(parser, "Options")
@@ -308,12 +307,18 @@ def main():
             "-l", "--target-list", type="string",
             help=("File with targets: 'target' or 'target:port' seperated by a"
                   "newline (port 22 is default)"), dest="targetlist")
+        parser.add_option(
+            "--skip-banner", dest="skip_banner", action="store_true",
+            default=False, help="Do not print banner")
         parser.add_option_group(parameters)
 
         options, arguments = parser.parse_args()
 
         target = options.target
         targetlist = options.targetlist
+
+        if not options.skip_banner:
+            print(banner())
 
         if target:
             parse_target(target)
