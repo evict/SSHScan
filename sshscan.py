@@ -1,35 +1,18 @@
-#!/usr/bin/env python
-# The MIT License (MIT)
-#
-# Copyright (c) 2017 Vincent Ruijter
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-#
-# Cipher detection based on: https://stribika.github.io/2015/01/04/secure-secure-shell.html
-#
+#!/usr/bin/env python3
 
-import sys, re
+import sys
 import socket
+import struct
+from yaml import safe_load
+from hashlib import md5
+from typing import List, Tuple
+from secrets import token_bytes
+from binascii import hexlify, unhexlify
 from optparse import OptionParser, OptionGroup
 
+
 def banner():
-        banner = """
+    banner = """
       _____ _____ _    _ _____
      /  ___/  ___| | | /  ___|
      \ `--.\ `--.| |_| \ `--.  ___ __ _ _ __
@@ -38,231 +21,309 @@ def banner():
      \____/\____/\_| |_\____/ \___\__,_|_| |_|
                                             evict
                 """
-        return banner
+    return banner
 
-def exchange(ip, port):
-	try:
-		conn = socket.create_connection((ip, port),5)
-		print "[*] Connected to %s on port %i..."%(ip, port)
-		version = conn.recv(50).split('\n')[0]
-		conn.send('SSH-2.0-OpenSSH_6.0p1\r\n')
-		print "    [+] Target SSH version is: %s" %version
-		print "    [+] Retrieving ciphers..."
-		ciphers = conn.recv(984)
-		conn.close()
-
-		return ciphers
-
-	except socket.timeout:
-		print "    [-] Timeout while connecting to %s on port %i\n"%(ip, port)
-		return False
-
-	except socket.error as e:
-		if e.errno == 61:
-			print "    [-] %s\n"%(e.strerror)
-			pass
-		else:
-			print "    [-] Error while connecting to %s on port %i\n"%(ip, port)
-			return False
-
-def validate_target(target):
-	list = target.split(":")
-	if len(list) != 1 and len(list) != 2: # only valid states
-		print "[-] %s is not a valid target!"%target
-		return False
-	hostname = list[0]
-	if len(hostname) > 255:
-		print "[-] %s is not a valid target!"%target
-		return False
-	if hostname[-1] == ".":
-		hostname = hostname[:-1] # strip exactly one dot from the right, if present
-	allowed = re.compile("(?!-)[A-Z\d-]{1,63}(?<!-)$", re.IGNORECASE)
-	if not all(allowed.match(x) for x in hostname.split(".")):
-		print "[-] %s is not a valid target!"%target
-		return False
-	if len(list) == 2: # there is a specific port indication
-		port = list[1]
-		try:
-			validport = int(port)
-			if validport < 1 or validport > 65535:
-				print "[-] %s is not a valid target!"%target
-				return False
-		except ValueError:
-			print "[-] %s is not a valid target!"%target
-			return False
-	return target
-
-def parse_target(target):
-	if validate_target(target):
-
-		if not re.search(r'[:*]', target):
-			print "[*] Target %s specified without a port number, using default port 22"%target
-			target = target+':22'
-
-		ipport=target.split(':')
-
-		try:
-			print "[*] Initiating scan for %s on port %s" %(ipport[0], ipport[1])
-			if not get_output(exchange(ipport[0], int(ipport[1]))):
-				return False
-
-		except IndexError:
-			print "    [-] Please specify target as 'target:port'!\n"
-			return False
-
-		except ValueError:
-			print "    [-] Target port error, please specify a valid port!\n"
-			return False
-
-def list_parser(list):
-	try:
-		fd=open(list, 'r')
-		targetlist = fd.read().split('\n')
-		targets = []
-		for target in targetlist:
-			if target:
-				targets.append(target)
-
-		print "[*] List contains %i targets to scan" %len(targets)
-
-		error = 0
-		for target in targets:
-			if parse_target(target) == False:
-				error+=1
-		if error > 0:
-			if error == len(targets):
-				print "[*] Scan failed for all %i hosts!"%len(targets)
-			else:
-				print "[*] Scan completed for %i out of %i targets!" %((len(targets)-error), len(targets))
-
-	except IOError as e:
-		if e.filename:
-			print "[-] %s: '%s'"%(e.strerror, e.filename)
-		else:
-			print "[-] %s"%e.strerror
-		sys.exit(2)
-
-def get_output(rawlist):
-	if rawlist:
-		ciphers = ['3des-cbc','aes128-cbc','aes192-cbc','aes256-cbc','aes128-ctr','aes192-ctr','aes256-ctr','aes128-gcm@openssh.com','aes256-gcm@openssh.com','arcfour','arcfour128','arcfour256','blowfish-cbc','cast128-cbc','chacha20-poly1305@openssh.com']
-		strong_ciphers = ['chacha20-poly1305@openssh.com','aes256-gcm@openssh.com','aes128-gcm@openssh.com','aes256-ctr','aes192-ctr','aes128-ctr']
-		weak_ciphers = []
-	   	macs = ['hmac-md5','hmac-md5-96','hmac-ripemd160','hmac-sha1','hmac-sha1-96','hmac-sha2-256','hmac-sha2-512','umac-64','hmac-md5-etm@openssh.com','hmac-md5-96-etm@openssh.com','hmac-ripemd160-etm@openssh.com','hmac-sha1-etm@openssh.com','hmac-sha1-96-etm@openssh.com','hmac-sha2-256-etm@openssh.com','hmac-sha2-512-etm@openssh.com','umac-64-etm@openssh.com','umac-128-etm@openssh.com']
-		strong_macs = ['hmac-sha2-512-etm@openssh.com','hmac-sha2-256-etm@openssh.com','umac-128','umac-128-etm@openssh.com','hmac-sha2-512','hmac-sha2-256','umac-128@openssh.com']
-		weak_macs = []
-		kex = ['curve25519-sha256', 'curve25519-sha256@libssh.org','diffie-hellman-group1-sha1','diffie-hellman-group14-sha1','diffie-hellman-group-exchange-sha1','diffie-hellman-group-exchange-sha256','ecdh-sha2-nistp256','ecdh-sha2-nistp384','ecdh-sha2-nistp521','ecdsa-sha2-nistp256-cert-v01@openssh.com','ecdsa-sha2-nistp384-cert-v01@openssh.com','ecdsa-sha2-nistp521-cert-v01@openssh.com']
-		strong_kex = ['curve25519-sha256', 'curve25519-sha256@libssh.org', 'diffie-hellman-group-exchange-sha256']
-		weak_kex = []
-		hka = ['ecdsa-sha2-nistp256-cert-v01@openssh.com','ecdsa-sha2-nistp384-cert-v01@openssh.com','ecdsa-sha2-nistp521-cert-v01@openssh.com','ssh-ed25519-cert-v01@openssh.com','ssh-rsa-cert-v01@openssh.com','ssh-dss-cert-v01@openssh.com','ssh-rsa-cert-v00@openssh.com','ssh-dss-cert-v00@openssh.com','ecdsa-sha2-nistp256','ecdsa-sha2-nistp384','ecdsa-sha2-nistp521','ssh-ed25519','ssh-rsa','ssh-dss']
-		strong_hka = ['ssh-rsa-cert-v01@openssh.com','ssh-ed25519-cert-v01@openssh.com','ssh-rsa-cert-v00@openssh.com','ssh-rsa','ssh-ed25519']
-		weak_hka = []
-		dmacs = []
-		for i in macs:
-			m = re.search(i, rawlist)
-			if m:
-				dmacs.append(i)
-				if i not in strong_macs:
-					weak_macs.append(i)
-		dciphers = []
-		for i in ciphers:
-			m = re.search(i, rawlist)
-			if m:
-				dciphers.append(i)
-				if i not in strong_ciphers:
-					weak_ciphers.append(i)
-		dkex = []
-		for i in kex:
-			m = re.search(i, rawlist)
-			if m:
-				dkex.append(i)
-				if i not in strong_kex:
-					weak_kex.append(i)
-		dhka = []
-		for i in hka:
-			m = re.search(i, rawlist)
-			if m:
-				dhka.append(i)
-				if i not in strong_hka:
-					weak_hka.append(i)
-		compression = False
-		if re.search("zlib@openssh.com", rawlist):
-			compression = True
-		print '    [+] Detected the following ciphers: '
-		print_columns(dciphers)
-		print '    [+] Detected the following KEX algorithms: '
-		print_columns(dkex)
-		print '    [+] Detected the following MACs: '
-		print_columns(dmacs)
-		print '    [+] Detected the following HostKey algorithms: '
-		print_columns(dhka)
-
-		if weak_ciphers:
-			print '    [+] Detected the following weak ciphers: '
-			print_columns(weak_ciphers)
-		else:
-			print '    [+] No weak ciphers detected!'
-
-		if weak_kex:
-			print '    [+] Detected the following weak KEX algorithms: '
-			print_columns(weak_kex)
-		else:
-			print '    [+] No weak KEX detected!'
-
-		if weak_macs:
-			print '    [+] Detected the following weak MACs: '
-			print_columns(weak_macs)
-		else:
-			print '    [+] No weak MACs detected!'
-
-		if weak_hka:
-			print '    [+] Detected the following weak HostKey algorithms: '
-			print_columns(weak_hka)
-		else:
-			print '    [+] No weak HostKey algorithms detected!'
-
-		if compression == True:
-			print "    [+] Compression has been enabled!"
-
-		return True
 
 def print_columns(cipherlist):
-	# adjust the amount of columns to display
-	cols = 2
-	while len(cipherlist) % cols != 0:
-		cipherlist.append('')
-	else:
-		split = [cipherlist[i:i+len(cipherlist)/cols] for i in range(0, len(cipherlist), len(cipherlist)/cols)]
-		for row in zip(*split):
-			print "            " + "".join(str.ljust(c,37) for c in row)
-	print "\n"
+    # adjust the amount of columns to display
+    cols = 2
+    while len(cipherlist) % cols != 0:
+        cipherlist.append("")
+    else:
+        split = [
+            cipherlist[i : i + int(len(cipherlist) / cols)]
+            for i in range(0, len(cipherlist), int(len(cipherlist) / cols))
+        ]
+        for row in zip(*split):
+            print("            " + "".join(str.ljust(c, 37) for c in row))
+    print("\n")
+
+
+def return_diff_list(detected, strong):
+
+    results = []
+
+    for item in detected:
+        if item not in strong:
+            results.append(item)
+
+
+def parse_results(version, kex, salg, enc, mac, cmpv):
+
+    version = version.decode("utf-8").rstrip()
+    kex = kex.decode("utf-8").split(",")
+    salg = salg.decode("utf-8").split(",")
+    enc = enc.decode("utf-8").split(",")
+    mac = mac.decode("utf-8").split(",")
+    cmpv = cmpv.decode("utf-8").split(",")
+
+    with open("config.yml") as fd:
+        config = safe_load(fd)
+
+    weak_ciphers = return_diff_list(enc, config["ciphers"])
+    weak_macs = return_diff_list(mac, config["macs"])
+    weak_kex = return_diff_list(kex, config["kex"])
+    weak_hka = return_diff_list(salg, config["hka"])
+
+    compression = True if "zlib@openssh.com" in cmpv else False
+
+    print("    [+] Detected the following ciphers: ")
+    print_columns(enc)
+    print("    [+] Detected the following KEX algorithms: ")
+    print_columns(kex)
+    print("    [+] Detected the following MACs: ")
+    print_columns(mac)
+    print("    [+] Detected the following HostKey algorithms: ")
+    print_columns(salg)
+
+    print("    [+] Target SSH version is: %s" % version)
+    print("    [+] Retrieving ciphers...")
+
+    if weak_ciphers:
+        print("    [+] Detected the following weak ciphers: ")
+        print_columns(weak_ciphers)
+    else:
+        print("    [+] No weak ciphers detected!")
+
+    if weak_kex:
+        print("    [+] Detected the following weak KEX algorithms: ")
+        print_columns(weak_kex)
+    else:
+        print("    [+] No weak KEX detected!")
+
+    if weak_macs:
+        print("    [+] Detected the following weak MACs: ")
+        print_columns(weak_macs)
+    else:
+        print("    [+] No weak MACs detected!")
+
+    if weak_hka:
+        print("    [+] Detected the following weak HostKey algorithms: ")
+        print_columns(weak_hka)
+    else:
+        print("    [+] No weak HostKey algorithms detected!")
+
+    if compression:
+        print("    [+] Compression has been enabled!")
+
+
+def unpack_ssh_name_list(kex, n):
+    """
+    Unpack the name-list from the packet
+    The comma separated list is preceded by an unsigned
+    integer which specifies the size of the list.
+    """
+
+    size = struct.unpack("!I", kex[n : n + 4])[0] + 1
+
+    # jump to the name-list
+    n += 3
+    payload = struct.unpack(f"!{size}p", kex[n : n + size])[0]
+
+    # to the next integer
+    n += size
+
+    return payload, n
+
+
+def unpack_msg_kex_init(kex):
+
+    # the MSG for KEXINIT looks as follows
+    #      byte         SSH_MSG_KEXINIT
+    #      byte[16]     cookie (random bytes)
+    #      name-list    kex_algorithms
+    #      name-list    server_host_key_algorithms
+    #      name-list    encryption_algorithms_client_to_server
+    #      name-list    encryption_algorithms_server_to_client
+    #      name-list    mac_algorithms_client_to_server
+    #      name-list    mac_algorithms_server_to_client
+    #      name-list    compression_algorithms_client_to_server
+    #      name-list    compression_algorithms_server_to_client
+    #      name-list    languages_client_to_server
+    #      name-list    languages_server_to_client
+    #      boolean      first_kex_packet_follows
+    #      uint32       0 (reserved for future extension)
+
+    packet_size = struct.unpack("!I", kex[0:4])[0]
+    print(f"[*] KEX size: {packet_size}")
+    message = kex[5]  # 20 == SSH_MSG_KEXINIT
+
+    if message != 20:
+        raise ValueError("did not receive SSH_MSG_KEXINIT")
+
+    cookie = struct.unpack("!16p", kex[6:22])[0]
+
+    print(f"[*] server cookie: {hexlify(cookie).decode('utf-8')}")
+
+    kex_size = struct.unpack("!I", kex[22:26])[0]
+    kex_size += 1
+
+    kex_algos = struct.unpack(f"!{kex_size}p", kex[25 : 25 + kex_size])[0]
+
+    n = 25 + kex_size
+
+    server_host_key_algo, n = unpack_ssh_name_list(kex, n)
+
+    enc_client_to_server, n = unpack_ssh_name_list(kex, n)
+    enc_server_to_client, n = unpack_ssh_name_list(kex, n)
+
+    mac_client_to_server, n = unpack_ssh_name_list(kex, n)
+    mac_server_to_client, n = unpack_ssh_name_list(kex, n)
+
+    cmp_client_to_server, n = unpack_ssh_name_list(kex, n)
+    cmp_server_to_client, n = unpack_ssh_name_list(kex, n)
+
+    return (
+        kex_algos,
+        server_host_key_algo,
+        enc_server_to_client,
+        mac_server_to_client,
+        cmp_server_to_client,
+    )
+
+
+def pack_msg_kexinit_for_server(kex, salg, enc, mac, cmpv):
+
+    kex_fmt = f"!I{len(kex)}s"
+    sal_fmt = f"!I{len(salg)}s"
+    enc_fmt = f"!I{len(enc)}s"
+    mac_fmt = f"!I{len(mac)}s"
+    cmp_fmt = f"!I{len(cmpv)}s"
+
+    kex = struct.pack(kex_fmt, len(kex), kex)
+    sal = struct.pack(sal_fmt, len(salg), salg)
+    enc = struct.pack(enc_fmt, len(enc), enc)
+    mac = struct.pack(mac_fmt, len(mac), mac)
+    cmpv = struct.pack(cmp_fmt, len(cmpv), cmpv)
+
+    # languages are not used, therefore null
+    # 4 bytes are reserved
+    remain = b"\x00\x00\x00\x00"
+
+    packet = b"\x20"
+    packet += token_bytes(16)
+    packet += kex
+    packet += sal
+    # we are lazy and have the ctos and stoc options same.
+    # this should not be the case
+    packet += enc
+    packet += enc
+    packet += mac
+    packet += mac
+    packet += cmpv
+    packet += cmpv
+    packet += remain
+
+    # + unsigned int + header
+    size = len(packet) + 4 + 2
+
+    # properly calculate the padding with length % 8
+    padding_len = size % 8
+
+    if padding_len < 4:
+        padding_len = 4
+
+    header = struct.pack("!cc", bytes([padding_len]), b"\x14")
+    padding = struct.pack(f"{padding_len}s", b"\x00" * padding_len)
+
+    length = struct.pack("!I", (size))
+
+    packet = length + header + packet + padding
+
+    return packet
+
+
+def retrieve_initial_kexinit(host: str, port: int) -> Tuple[List, List]:
+
+    s = return_socket_for_host(host, port)
+
+    version = s.recv(2048)
+    s.send(version)
+
+    kex_init = s.recv(4096)
+    s.close()
+
+    return kex_init, version
+
+
+def return_socket_for_host(host, port):
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((host, port))
+
+    return s
+
 
 def main():
-	try:
-		print banner()
-		parser = OptionParser(usage="usage %prog [options]", version="%prog 1.0")
-		parameters = OptionGroup(parser, "Options")
 
-		parameters.add_option("-t", "--target", type="string", help="Specify target as 'target' or 'target:port' (port 22 is default)", dest="target")
-		parameters.add_option("-l", "--target-list", type="string", help="File with targets: 'target' or 'target:port' seperated by a newline (port 22 is default)", dest="targetlist")
-		parser.add_option_group(parameters)
+    print(banner())
+    parser = OptionParser(usage="usage %prog [options]", version="%prog 2.0")
+    parameters = OptionGroup(parser, "Options")
 
-		options, arguments = parser.parse_args()
+    parameters.add_option(
+        "-t",
+        "--target",
+        type="string",
+        help="Specify target as 'target' or 'target:port' (port 22 is default)",
+        dest="target",
+    )
+    parameters.add_option(
+        "-l",
+        "--target-list",
+        type="string",
+        help="File with targets: 'target' or 'target:port' seperated by a newline (port 22 is default)",
+        dest="targetlist",
+    )
+    parser.add_option_group(parameters)
 
-		target = options.target
-		targetlist = options.targetlist
+    options, arguments = parser.parse_args()
 
-		if target:
-			parse_target(target)
-		else:
-			if targetlist:
-				list_parser(targetlist)
-			else:
-				print "[-] No target specified!"
-				sys.exit(0)
+    targets = []
 
-	except KeyboardInterrupt:
-		print "\n[-] ^C Pressed, quitting!"
-		sys.exit(3)
+    target = options.target
+    targetlist = options.targetlist
 
-if __name__ == '__main__':
-	main()
+    if target:
+        targets.append(target)
+
+    else:
+        if targetlist:
+            with open(targetlist) as fd:
+                for item in fd.readlines():
+                    targets.append(item.rstrip())
+
+        else:
+            print("[-] No target specified!")
+            sys.exit(0)
+
+    # we send first packets to make sure we match keys
+    for target in targets:
+
+        if not ":" in target:
+            target += ":22"
+
+        host, port = target.split(":")
+        port = int(port)
+
+        try:
+            kex_init, version = retrieve_initial_kexinit(host, port)
+
+        except socket.timeout:
+            print("    [-] Timeout while connecting to %s on port %i\n" % (host, port))
+
+        except socket.error as e:
+            if e.errno == 61:
+                print("    [-] %s\n" % (e.strerror))
+            else:
+                print(
+                    "    [-] Error while connecting to %s on port %i\n" % (host, port)
+                )
+
+    # parse the server KEXINIT message
+    kex, salg, enc, mac, cmpv = unpack_msg_kex_init(kex_init)
+
+    parse_results(version, kex, salg, enc, mac, cmpv)
+
+
+if __name__ == "__main__":
+    main()
