@@ -12,3 +12,5 @@ You can install SSHScan by cloning the [Git](https://github.com/evict/SSHScan) r
 
 To get a list of basic options use: <br>
 `python sshscan.py -h`
+
+Edit `config.yml` to add / remove strong ciphers.
