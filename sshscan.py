@@ -4,10 +4,9 @@ import sys
 import socket
 import struct
 from yaml import safe_load
-from hashlib import md5
 from typing import List, Tuple
 from secrets import token_bytes
-from binascii import hexlify, unhexlify
+from binascii import hexlify
 from optparse import OptionParser, OptionGroup
 
 
@@ -212,7 +211,9 @@ def pack_msg_kexinit_for_server(kex, salg, enc, mac, cmpv):
     packet += mac
     packet += cmpv
     packet += cmpv
+    packet += b"\x00"
     packet += remain
+    packet += b"\x00" * 8
 
     # + unsigned int + header
     size = len(packet) + 4 + 2
@@ -223,14 +224,7 @@ def pack_msg_kexinit_for_server(kex, salg, enc, mac, cmpv):
     if padding_len < 4:
         padding_len = 4
 
-    header = struct.pack("!cc", bytes([padding_len]), b"\x14")
-    padding = struct.pack(f"{padding_len}s", b"\x00" * padding_len)
-
-    length = struct.pack("!I", (size))
-
-    packet = length + header + packet + padding
-
-    return packet
+    return _pack_packet(packet)
 
 
 def retrieve_initial_kexinit(host: str, port: int) -> Tuple[List, List]:
@@ -252,6 +246,24 @@ def return_socket_for_host(host, port):
     s.connect((host, port))
 
     return s
+
+
+def _pack_packet(packet):
+
+    block_size = 8
+
+    # https://github.com/paramiko/paramiko/blob/master/paramiko/packet.py#L631
+    padding_len = 3 + block_size - ((len(packet) + 8) % block_size) + 1
+
+    if padding_len < block_size:
+        padding_len = block_size
+
+    header = struct.pack(">IB", len(packet) + padding_len, padding_len)
+    padding = b"\x00" * padding_len
+
+    packet = header + packet + padding
+
+    return packet
 
 
 def main():
@@ -299,7 +311,7 @@ def main():
     # we send first packets to make sure we match keys
     for target in targets:
 
-        if not ":" in target:
+        if ":" not in target:
             target += ":22"
 
         host, port = target.split(":")
