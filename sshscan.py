@@ -45,7 +45,8 @@ def return_diff_list(detected, strong):
     for item in detected:
         if item not in strong:
             results.append(item)
-
+    
+    return results
 
 def parse_results(version, kex, salg, enc, mac, cmpv):
 
