@@ -126,7 +126,7 @@ def unpack_ssh_name_list(kex, n):
     return payload, n
 
 
-def unpack_msg_kex_init(kex):
+def unpack_msg_kex_init(target, kex):
 
     # the MSG for KEXINIT looks as follows
     #      byte         SSH_MSG_KEXINIT
@@ -144,6 +144,7 @@ def unpack_msg_kex_init(kex):
     #      boolean      first_kex_packet_follows
     #      uint32       0 (reserved for future extension)
 
+    print(f"[*] Target: {target}")
     packet_size = struct.unpack("!I", kex[0:4])[0]
     print(f"[*] KEX size: {packet_size}")
     message = kex[5]  # 20 == SSH_MSG_KEXINIT
@@ -332,10 +333,13 @@ def main():
                     "    [-] Error while connecting to %s on port %i\n" % (host, port)
                 )
 
-    # parse the server KEXINIT message
-    kex, salg, enc, mac, cmpv = unpack_msg_kex_init(kex_init)
+        # parse the server KEXINIT message
+        kex, salg, enc, mac, cmpv = unpack_msg_kex_init(target, kex_init)
 
-    parse_results(version, kex, salg, enc, mac, cmpv)
+        parse_results(version, kex, salg, enc, mac, cmpv)
+
+        if (target != targets[-1]) and (target.split(':')[0] != targets[-1].split(':')[0]):
+            print("\n-----\n")
 
 
 if __name__ == "__main__":
